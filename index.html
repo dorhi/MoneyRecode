@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Household Account Book</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://kit.fontawesome.com/64d58efce2.js" crossorigin="anonymous"></script>
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client"></script>
+</head>
+<body class="dark-mode">
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay glass">
+        <div class="login-box">
+            <div class="logo large">
+                <i class="fas fa-wallet"></i>
+                <span>SmartPay</span>
+            </div>
+            <h1>가족 가계부</h1>
+            <p>로그인하여 지출 내역을 관리하세요</p>
+            <div id="google-login-btn"></div>
+            <p class="login-footer">가족 웹 앱 서비스</p>
+        </div>
+    </div>
+
+    <div class="app-container" style="display: none;">
+        <!-- Sidebar/Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-wallet"></i>
+                <span>SmartPay</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" id="nav-dashboard" class="nav-item active"><i class="fas fa-tachometer-alt"></i> 대시보드</a>
+                <a href="#" id="nav-transactions" class="nav-item"><i class="fas fa-list"></i> 거래 내역</a>
+                <a href="#" id="nav-stats" class="nav-item"><i class="fas fa-chart-pie"></i> 통계 분석</a>
+                <a href="#" id="nav-settings" class="nav-item"><i class="fas fa-cog"></i> 설정</a>
+            </nav>
+            <div class="sidebar-footer">
+                <p>Connected to Google Sheets</p>
+                <div class="status-indicator online"></div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="검색어를 입력하세요...">
+                </div>
+                <div class="user-profile">
+                    <span id="current-date-display">2026년 4월 2일</span>
+                    <div class="user-info-chip" id="user-info-chip">
+                        <img src="" alt="profile" id="user-avatar">
+                        <span id="user-name-display">사용자</span>
+                        <button id="logout-btn" title="로그아웃"><i class="fas fa-sign-out-alt"></i></button>
+                    </div>
+                    <button id="add-transaction-btn" class="btn-primary">
+                        <i class="fas fa-plus"></i> 새 지출 기록
+                    </button>
+                </div>
+            </header>
+
+            <section id="section-dashboard" class="page-section active">
+                <div class="dashboard-grid">
+                <!-- Summary Cards -->
+                <div class="overview-cards single-card">
+                    <div class="card summary-card expense">
+                        <div class="card-icon"><i class="fas fa-arrow-up"></i></div>
+                        <div class="card-info">
+                            <h3>이번 달 총 지출</h3>
+                            <p class="amount" id="total-expense">₩ 0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Section: Form & Recent Transactions -->
+                <div class="content-row">
+                    </div>
+
+                    <!-- Recent Transactions List -->
+                    <div class="card transactions-card glass">
+                        <div class="card-header">
+                            <h2>최근 거래 내역</h2>
+                            <button class="btn-text">전체 보기</button>
+                        </div>
+                        <div class="table-container">
+                            <table id="transaction-table">
+                                <thead>
+                                    <tr>
+                                        <th>날짜</th>
+                                        <th>구분</th>
+                                        <th>사용한 곳</th>
+                                        <th>금액</th>
+                                        <th>사용자</th>
+                                        <th>사용 내역</th>
+                                        <th>카드</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transaction-body">
+                                    <!-- Dynamic rows -->
+                                    <tr class="placeholder">
+                                        <td colspan="6">데이터를 불러오는 중...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section> <!-- End Dashboard Section -->
+
+            <!-- Other Sections (Placeholders) -->
+            <section id="section-transactions" class="page-section">
+                <div class="card glass transactions-card">
+                    <div class="card-header">
+                        <h2>전체 거래 내역</h2>
+                        <span class="text-secondary">모든 지출 기록을 확인합니다.</span>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>날짜</th>
+                                    <th>구분</th>
+                                    <th>사용한 곳</th>
+                                    <th>금액</th>
+                                    <th>사용자</th>
+                                    <th>사용 내역</th>
+                                    <th>카드</th>
+                                </tr>
+                            </thead>
+                            <tbody class="transaction-list-body">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-stats" class="page-section">
+                <div class="stats-container">
+                    <div class="card glass stats-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-calendar-alt"></i> 전월 23일 ~ 현재 지출 집계</h2>
+                            <span class="text-secondary small" id="period-stats-date"></span>
+                        </div>
+                        <div class="table-container">
+                            <table class="stats-table">
+                                <thead>
+                                    <tr>
+                                        <th>사용자</th>
+                                        <th>구분</th>
+                                        <th>합계 금액</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="period-stats-body">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card glass stats-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-line"></i> 월별 지출 집계</h2>
+                        </div>
+                        <div class="table-container">
+                            <table class="stats-table">
+                                <thead>
+                                    <tr>
+                                        <th>해당 월</th>
+                                        <th>사용자</th>
+                                        <th>구분</th>
+                                        <th>합계 금액</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monthly-stats-body">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-settings" class="page-section">
+                <div class="card glass">
+                    <h2>설정</h2>
+                    <p style="padding: 2rem; color: var(--text-secondary);">구글 시트 연동 및 테마 설정을 변경할 수 있습니다.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Transaction Form Modal (Global) -->
+    <div id="transaction-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>지출 기록 추가</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <form id="transaction-form" class="transaction-form">
+                <div class="form-group">
+                    <label for="date"><i class="fas fa-calendar"></i> 날짜</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="place"><i class="fas fa-store"></i> 사용한 곳</label>
+                    <input type="text" id="place" name="place" placeholder="어디서 사용했나요?" required>
+                </div>
+                <div class="form-group">
+                    <label for="amount"><i class="fas fa-won-sign"></i> 금액</label>
+                    <input type="text" id="amount" name="amount" class="amount-input" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="user"><i class="fas fa-user-tag"></i> 사용자</label>
+                    <input type="text" id="user" name="user" placeholder="사용자 이름" required>
+                </div>
+                <div class="form-group">
+                    <label for="details"><i class="fas fa-info-circle"></i> 사용 내역</label>
+                    <input type="text" id="details" name="details" placeholder="구체적인 내역">
+                </div>
+                <div class="form-group">
+                    <label for="category-input"><i class="fas fa-tags"></i> 구분</label>
+                    <div class="combo-box">
+                        <input type="text" id="category-input" name="category" list="category-list" placeholder="구분 선택 또는 입력">
+                        <datalist id="category-list">
+                            <!-- Dynamic options -->
+                        </datalist>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="card"><i class="fas fa-credit-card"></i> 사용한 카드</label>
+                    <div class="combo-box">
+                        <input type="text" id="card-input" name="card" list="card-list" placeholder="카드 선택 또는 입력">
+                        <datalist id="card-list">
+                            <!-- Dynamic options -->
+                        </datalist>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">저장하기</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats Detail Modal -->
+    <div id="stats-detail-modal" class="modal">
+        <div class="modal-content glass wide">
+            <div class="modal-header">
+                <h2><i class="fas fa-list-ul"></i> 상세 지출 내역</h2>
+                <span class="close-stats-modal" id="close-stats-modal">&times;</span>
+            </div>
+            <div class="table-container stats-detail-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>날짜</th>
+                            <th>사용처</th>
+                            <th>금액</th>
+                            <th>사용 내역</th>
+                            <th>카드</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-detail-body">
+                        <!-- Dynamic -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
