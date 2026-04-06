@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Premium Household Account Book</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://kit.fontawesome.com/64d58efce2.js" crossorigin="anonymous"></script>
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client"></script>
 </head>
+
 <body class="dark-mode">
     <!-- Login Overlay -->
     <div id="login-overlay" class="login-overlay glass">
@@ -68,19 +72,19 @@
 
             <section id="section-dashboard" class="page-section active">
                 <div class="dashboard-grid">
-                <!-- Summary Cards -->
-                <div class="overview-cards single-card">
-                    <div class="card summary-card expense">
-                        <div class="card-icon"><i class="fas fa-arrow-up"></i></div>
-                        <div class="card-info">
-                            <h3>이번 달 총 지출</h3>
-                            <p class="amount" id="total-expense">₩ 0</p>
+                    <!-- Summary Cards -->
+                    <div class="overview-cards single-card">
+                        <div class="card summary-card expense">
+                            <div class="card-icon"><i class="fas fa-arrow-up"></i></div>
+                            <div class="card-info">
+                                <h3>이번 달 총 지출</h3>
+                                <p class="amount" id="total-expense">₩ 0</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Main Section: Form & Recent Transactions -->
-                <div class="content-row">
+                    <!-- Main Section: Form & Recent Transactions -->
+                    <div class="content-row">
                     </div>
 
                     <!-- Recent Transactions List -->
@@ -253,7 +257,8 @@
                 <div class="form-group">
                     <label for="category-input"><i class="fas fa-tags"></i> 구분</label>
                     <div class="combo-box">
-                        <input type="text" id="category-input" name="category" list="category-list" placeholder="구분 선택 또는 입력">
+                        <input type="text" id="category-input" name="category" list="category-list"
+                            placeholder="구분 선택 또는 입력">
                         <datalist id="category-list">
                             <!-- Dynamic options -->
                         </datalist>
@@ -304,4 +309,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>

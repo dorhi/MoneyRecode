@@ -193,7 +193,7 @@ function setupEventListeners() {
         item.addEventListener('click', (e) => {
             e.preventDefault();
             const target = item.getAttribute('data-target');
-            
+
             // Trigger the corresponding sidebar nav click
             const sidebarBtn = document.getElementById(`nav-${target}`);
             if (sidebarBtn) sidebarBtn.click();
@@ -661,19 +661,19 @@ function closeStatsModal() {
 // --- UTILS ---
 function parseDate(dateStr) {
     if (!dateStr) return new Date();
-    
+
     // If it's already a Date object, return it
     if (dateStr instanceof Date) return dateStr;
 
     // Convert to string and clean
     let s = String(dateStr).trim();
-    
+
     // Handle "2026-04-02T..." ISO format
     if (s.includes('T')) return new Date(s);
 
     // Split by . or - or /
     const parts = s.split(/[\.\-\/]/).map(p => p.trim());
-    
+
     if (parts.length >= 3) {
         const y = parseInt(parts[0], 10);
         const m = parseInt(parts[1], 10) - 1; // Month is 0-indexed
