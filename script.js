@@ -177,6 +177,33 @@ function setupEventListeners() {
     // Form submission
     elements.form.addEventListener('submit', handleFormSubmit);
 
+    // Mobile FAB
+    const fabBtn = document.getElementById('floating-add-btn');
+    if (fabBtn) {
+        fabBtn.addEventListener('click', () => {
+            elements.dateInput.value = formatDateLocal(new Date());
+            elements.modal.style.display = 'flex';
+            setTimeout(() => elements.modal.classList.add('show'), 10);
+        });
+    }
+
+    // Mobile Bottom Nav
+    const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
+    bottomNavItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = item.getAttribute('data-target');
+            
+            // Trigger the corresponding sidebar nav click
+            const sidebarBtn = document.getElementById(`nav-${target}`);
+            if (sidebarBtn) sidebarBtn.click();
+
+            // Update bottom nav active state
+            bottomNavItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+        });
+    });
+
     // Auto-submit on Enter or Selection for Category and Card
     const setupAutoSubmit = (inputEl, optionsKey) => {
         if (!inputEl) return;
@@ -222,6 +249,14 @@ function setupNavigation() {
             const targetSection = document.getElementById(targetId);
             if (targetSection) {
                 targetSection.classList.add('active');
+
+                // Sync bottom nav
+                const targetKey = item.id.replace('nav-', '');
+                const bottomNavItem = document.querySelector(`.bottom-nav-item[data-target="${targetKey}"]`);
+                if (bottomNavItem) {
+                    document.querySelectorAll('.bottom-nav-item').forEach(bn => bn.classList.remove('active'));
+                    bottomNavItem.classList.add('active');
+                }
 
                 // If stats section, render it
                 if (targetId === 'section-stats') {
