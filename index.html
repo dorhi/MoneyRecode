@@ -147,46 +147,60 @@
             </section>
 
             <section id="section-stats" class="page-section">
+                <div class="stats-filter-bar card glass">
+                    <div class="filter-group">
+                        <label for="stats-year"><i class="fas fa-calendar"></i> 연도</label>
+                        <select id="stats-year" class="stats-select">
+                            <!-- Dynamic years -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="stats-month"><i class="fas fa-calendar-alt"></i> 월</label>
+                        <select id="stats-month" class="stats-select">
+                            <option value="0">1월</option>
+                            <option value="1">2월</option>
+                            <option value="2">3월</option>
+                            <option value="3">4월</option>
+                            <option value="4">5월</option>
+                            <option value="5">6월</option>
+                            <option value="6">7월</option>
+                            <option value="7">8월</option>
+                            <option value="8">9월</option>
+                            <option value="9">10월</option>
+                            <option value="10">11월</option>
+                            <option value="11">12월</option>
+                        </select>
+                    </div>
+                    <button id="refresh-stats-btn" class="btn-icon" title="다시 불러오기"><i class="fas fa-sync-alt"></i></button>
+                </div>
+
                 <div class="stats-container">
+                    <!-- 1. Card by User Stats -->
                     <div class="card glass stats-card">
                         <div class="card-header">
-                            <h2><i class="fas fa-calendar-alt"></i> 전월 23일 ~ 현재 지출 집계</h2>
-                            <span class="text-secondary small" id="period-stats-date"></span>
+                            <h2><i class="fas fa-credit-card"></i> 카드별/사용자별 지출 집계</h2>
+                            <span class="text-secondary small">정산 기간 중 카드 사용액 요약</span>
                         </div>
-                        <div class="table-container">
-                            <table class="stats-table">
-                                <thead>
-                                    <tr>
-                                        <th>사용자</th>
-                                        <th>구분</th>
-                                        <th>합계 금액</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="period-stats-body">
-                                    <!-- Dynamic -->
-                                </tbody>
-                            </table>
+                        <div id="card-stats-container" class="pivot-container">
+                            <!-- table injected here -->
                         </div>
                     </div>
 
+                    <!-- 2. Period Stats -->
                     <div class="card glass stats-card">
                         <div class="card-header">
-                            <h2><i class="fas fa-chart-line"></i> 월별 지출 집계</h2>
+                            <h2><i class="fas fa-calendar-alt"></i> 정산 기간 지출 집계</h2>
+                            <span id="period-stats-date" class="text-secondary small">조회 기간</span>
                         </div>
-                        <div class="table-container">
-                            <table class="stats-table">
-                                <thead>
-                                    <tr>
-                                        <th>해당 월</th>
-                                        <th>사용자</th>
-                                        <th>구분</th>
-                                        <th>합계 금액</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="monthly-stats-body">
-                                    <!-- Dynamic -->
-                                </tbody>
-                            </table>
+                        <div id="period-stats-container" class="pivot-container">
+                            <!-- table injected here -->
+                        </div>
+                    </div>
+
+                    <!-- 3. Monthly Detailed Stats -->
+                    <div class="card glass stats-card">
+                        <div id="monthly-stats-container">
+                            <!-- Header and table injected here -->
                         </div>
                     </div>
                 </div>

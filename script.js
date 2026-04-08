@@ -4,7 +4,7 @@
 
 // --- CONFIGURATION ---
 // IMPORTANT: Paste your Google Apps Script Web App URL here!
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx5e-NkNq_dZFAJ_hDw0n90LFA3ARb-iiIuHNvh89Wxp-NMUyupld7Dd1l_9KLL6hYx/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzg5lNZ19nObtGi9AFdS_idFqmDELR-tt26GaW9ubfRVkJPE0JkRfzbh1m9rDYPtmyE/exec";
 
 // IMPORTANT: Paste your Google Client ID here!
 const GOOGLE_CLIENT_ID = "755923168348-3b5v8j08o0c4506dcd87i7n56hnni2n0.apps.googleusercontent.com";
@@ -17,7 +17,9 @@ let state = {
         cards: [],
         authors: []
     },
-    totalExpense: 0
+    totalExpense: 0,
+    selectedYear: new Date().getFullYear(),
+    selectedMonth: new Date().getMonth()
 };
 
 // --- DOM ELEMENTS ---
@@ -43,12 +45,16 @@ const elements = {
     categoryInput: document.getElementById('category-input'),
     cardInput: document.getElementById('card-input'),
     amountInput: document.getElementById('amount'),
-    periodStatsBody: document.getElementById('period-stats-body'),
-    monthlyStatsBody: document.getElementById('monthly-stats-body'),
     periodStatsDate: document.getElementById('period-stats-date'),
     statsDetailModal: document.getElementById('stats-detail-modal'),
     statsDetailBody: document.getElementById('stats-detail-body'),
-    closeStatsModalBtn: document.getElementById('close-stats-modal')
+    closeStatsModalBtn: document.getElementById('close-stats-modal'),
+    statsYearSelect: document.getElementById('stats-year'),
+    statsMonthSelect: document.getElementById('stats-month'),
+    refreshStatsBtn: document.getElementById('refresh-stats-btn'),
+    periodStatsContainer: document.getElementById('period-stats-container'),
+    cardStatsContainer: document.getElementById('card-stats-container'),
+    monthlyStatsContainer: document.getElementById('monthly-stats-container')
 };
 
 // --- INITIALIZATION ---
@@ -226,6 +232,23 @@ function setupEventListeners() {
 
     setupAutoSubmit(elements.categoryInput, 'categories');
     setupAutoSubmit(elements.cardInput, 'cards');
+
+    // Stats Filters
+    if (elements.statsYearSelect) {
+        elements.statsYearSelect.addEventListener('change', (e) => {
+            state.selectedYear = parseInt(e.target.value);
+            renderStatistics();
+        });
+    }
+    if (elements.statsMonthSelect) {
+        elements.statsMonthSelect.addEventListener('change', (e) => {
+            state.selectedMonth = parseInt(e.target.value);
+            renderStatistics();
+        });
+    }
+    if (elements.refreshStatsBtn) {
+        elements.refreshStatsBtn.addEventListener('click', fetchData);
+    }
 }
 
 function setupNavigation() {
@@ -258,13 +281,29 @@ function setupNavigation() {
                     bottomNavItem.classList.add('active');
                 }
 
-                // If stats section, render it
+                // If stats section, initialize and render
                 if (targetId === 'section-stats') {
+                    initStatsFilters();
                     renderStatistics();
                 }
             }
         });
     });
+}
+
+function initStatsFilters() {
+    if (!elements.statsYearSelect || elements.statsYearSelect.options.length > 0) return;
+
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear - 2; y <= currentYear + 1; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = `${y}년`;
+        if (y === state.selectedYear) opt.selected = true;
+        elements.statsYearSelect.appendChild(opt);
+    }
+
+    elements.statsMonthSelect.value = state.selectedMonth;
 }
 
 function handleLogout() {
@@ -293,7 +332,10 @@ async function fetchData() {
         const data = await response.json();
 
         state.transactions = (data.transactions || []).sort((a, b) => {
-            return parseDate(b.Date) - parseDate(a.Date);
+            const dateDiff = parseDate(b.Date) - parseDate(a.Date);
+            if (dateDiff !== 0) return dateDiff;
+            // Secondary sort: CreatedAt (Registration timestamp)
+            return new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0);
         });
         state.options = data.options;
 
@@ -314,7 +356,9 @@ function updateUI() {
 function renderTransactions() {
     // Sort transactions by date descending (Safety check)
     const sortedTransactions = [...state.transactions].sort((a, b) => {
-        return parseDate(b.Date) - parseDate(a.Date);
+        const dateDiff = parseDate(b.Date) - parseDate(a.Date);
+        if (dateDiff !== 0) return dateDiff;
+        return new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0);
     });
 
     if (sortedTransactions.length === 0) {
@@ -448,25 +492,33 @@ async function handleFormSubmit(e) {
 function renderStatistics() {
     if (!state.transactions || state.transactions.length === 0) return;
 
-    // 1. Period Stats (Pivot Table)
-    const periodTransactions = getPeriodTransactions();
-    const periodData = generatePeriodStats(); // For the date string
-    elements.periodStatsDate.textContent = periodData.periodStr;
+    const targetDate = new Date(state.selectedYear, state.selectedMonth, 1);
 
-    const periodPivotHTML = createPivotHTML(periodTransactions);
-    elements.periodStatsBody.parentElement.parentElement.innerHTML = `
-        <div class="pivot-container">
-            <table class="pivot-table">
-                ${periodPivotHTML}
-            </table>
-        </div>
-    `;
+    // 1. Period Stats (23rd of previous month ~ 22nd of selected month)
+    const periodTransactions = getPeriodTransactionsByDate(targetDate);
+    const periodData = generatePeriodStatsByDate(targetDate);
+    if (elements.periodStatsDate) {
+        elements.periodStatsDate.textContent = periodData.periodStr;
+    }
 
-    // 2. Monthly Stats (Pivot Table - Grouped by Month)
-    const monthlyStatsHTML = generateMonthlyPivotStats();
-    elements.monthlyStatsBody.parentElement.parentElement.innerHTML = monthlyStatsHTML;
+    const periodPivotHTML = createPivotHTML(periodTransactions, 'User', 'Category');
+    if (elements.periodStatsContainer) {
+        elements.periodStatsContainer.innerHTML = `<table class="pivot-table">${periodPivotHTML}</table>`;
+    }
 
-    // Bind click events (Global for all pivot tables)
+    // 2. Card by User Stats (Pivot Table)
+    const cardPivotHTML = createPivotHTML(periodTransactions, 'Card', 'User');
+    if (elements.cardStatsContainer) {
+        elements.cardStatsContainer.innerHTML = `<table class="pivot-table">${cardPivotHTML}</table>`;
+    }
+
+    // 3. Monthly Stats (Pivot Table - Filtered to the EXACT selected Year/Month)
+    const monthlyStatsHTML = generateMonthlyPivotStats(state.selectedYear, state.selectedMonth);
+    if (elements.monthlyStatsContainer) {
+        elements.monthlyStatsContainer.innerHTML = monthlyStatsHTML;
+    }
+
+    // Bind click events
     document.querySelectorAll('.stat-amount').forEach(el => {
         el.addEventListener('click', function () {
             const itemsData = this.getAttribute('data-items');
@@ -478,138 +530,118 @@ function renderStatistics() {
     });
 }
 
-function getPeriodTransactions() {
-    const today = new Date();
-    let startYear = today.getFullYear();
-    let startMonth = today.getMonth() - 1;
+function getPeriodTransactionsByDate(targetDate) {
+    const y = targetDate.getFullYear();
+    const m = targetDate.getMonth();
+
+    // Start: 23rd of previous month
+    let startYear = y;
+    let startMonth = m - 1;
     if (startMonth < 0) { startMonth = 11; startYear--; }
     const startDate = new Date(startYear, startMonth, 23);
 
+    // End: 22nd of selected month
+    const endDate = new Date(y, m, 22);
+
     return state.transactions.filter(t => {
         const d = parseDate(t.Date);
-        return d >= startDate && d <= today;
+        return d >= startDate && d <= endDate;
     });
 }
 
-function createPivotHTML(transactions) {
+function createPivotHTML(transactions, rowField, colField) {
     if (transactions.length === 0) return '<tr><td style="text-align:center; padding:20px;">내역이 없습니다.</td></tr>';
 
-    const users = [...new Set(transactions.map(t => t.User))].sort();
-    const categories = [...new Set(transactions.map(t => t.Category || '미분류'))].sort();
+    const rowItems = [...new Set(transactions.map(t => t[rowField] || '미분류'))].sort();
+    const colItems = [...new Set(transactions.map(t => t[colField] || '미분류'))].sort();
 
-    // Matrix: [user][category]
+    // Matrix: [row][col]
     const matrix = {};
-    users.forEach(u => {
-        matrix[u] = {};
-        categories.forEach(c => matrix[u][c] = { amount: 0, items: [] });
-        matrix[u]._total = 0;
+    rowItems.forEach(r => {
+        matrix[r] = {};
+        colItems.forEach(c => matrix[r][c] = { amount: 0, items: [] });
+        matrix[r]._total = 0;
     });
 
     transactions.forEach(t => {
-        const u = t.User;
-        const c = t.Category || '미분류';
-        if (matrix[u] && matrix[u][c]) {
-            const amt = (Number(t.Amount) || 0);
-            matrix[u][c].amount += amt;
-            matrix[u][c].items.push(t);
-            matrix[u]._total += amt;
+        const r = t[rowField] || '미분류';
+        const c = t[colField] || '미분류';
+        if (matrix[r] && matrix[r][c]) {
+            const amt = (Number(String(t.Amount).replace(/,/g, '')) || 0);
+            matrix[r][c].amount += amt;
+            matrix[r][c].items.push(t);
+            matrix[r]._total += amt;
         }
     });
 
     // Generate HTML
-    let html = `<thead><tr><th class="row-label">이름</th>`;
-    categories.forEach(c => html += `<th>${c}</th>`);
+    let html = `<thead><tr><th class="row-label">${rowField === 'User' ? '이름' : (rowField === 'Card' ? '카드' : rowField)}</th>`;
+    colItems.forEach(c => html += `<th>${c}</th>`);
     html += `<th class="col-total">총합계</th></tr></thead><tbody>`;
 
-    users.forEach(u => {
-        html += `<tr><td class="row-label">${u}</td>`;
-        categories.forEach(c => {
-            const cell = matrix[u][c];
+    rowItems.forEach(r => {
+        html += `<tr><td class="row-label">${r}</td>`;
+        colItems.forEach(c => {
+            const cell = matrix[r][c];
             if (cell.amount > 0) {
                 html += `<td><span class="stat-amount" data-items='${JSON.stringify(cell.items)}'>${cell.amount.toLocaleString()}</span></td>`;
             } else {
                 html += `<td class="empty-val">-</td>`;
             }
         });
-        html += `<td class="row-total">${matrix[u]._total.toLocaleString()}</td></tr>`;
+        html += `<td class="row-total">${matrix[r]._total.toLocaleString()}</td></tr>`;
     });
 
-    // Column Totals (Footer)
-    html += `</tbody><tfoot><tr class="row-total"><td class="row-label">항목별 합계</td>`;
-    categories.forEach(c => {
+    // Column Totals
+    html += `</tbody><tfoot><tr class="row-total"><td class="row-label">합계</td>`;
+    colItems.forEach(c => {
         let colTotal = 0;
-        users.forEach(u => colTotal += matrix[u][c].amount);
+        rowItems.forEach(r => colTotal += matrix[r][c].amount);
         html += `<td>${colTotal.toLocaleString()}</td>`;
     });
-    const grandTotal = users.reduce((sum, u) => sum + matrix[u]._total, 0);
+    const grandTotal = rowItems.reduce((sum, r) => sum + matrix[r]._total, 0);
     html += `<td>${grandTotal.toLocaleString()}</td></tr></tfoot>`;
 
     return html;
 }
 
-function generateMonthlyPivotStats() {
-    const months = [...new Set(state.transactions.map(t => {
-        const d = new Date(t.Date);
-        return `${d.getFullYear()}.${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-    }))].sort().reverse();
-
-    let fullHtml = '';
-    months.forEach(m => {
-        const monthTransactions = state.transactions.filter(t => {
-            const d = new Date(t.Date);
-            const mKey = `${d.getFullYear()}.${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-            return mKey === m;
-        });
-
-        fullHtml += `
-            <div class="card glass stats-card" style="margin-bottom: 2rem;">
-                <div class="card-header">
-                    <h2><i class="fas fa-calendar-check"></i> ${m} 사용 내역</h2>
-                </div>
-                <div class="pivot-container">
-                    <table class="pivot-table">
-                        ${createPivotHTML(monthTransactions)}
-                    </table>
-                </div>
-            </div>
-        `;
+function generateMonthlyPivotStats(year, month) {
+    const monthTransactions = state.transactions.filter(t => {
+        const d = parseDate(t.Date);
+        return d.getFullYear() === year && d.getMonth() === month;
     });
-    return fullHtml;
+
+    if (monthTransactions.length === 0) {
+        return `<p style="text-align:center; padding:2rem; color: var(--text-secondary);">${year}년 ${month + 1}월 데이터가 없습니다.</p>`;
+    }
+
+    const monthName = `${year}.${(month + 1).toString().padStart(2, '0')}`;
+    return `
+        <div class="card-header" style="padding-top: 0; padding-left: 0;">
+            <h2><i class="fas fa-calendar-check"></i> ${monthName} 전체 지출 (1일~말일)</h2>
+            <span class="text-secondary small">${month + 1}월 1일부터 마지막 날까지의 지출입니다.</span>
+        </div>
+        <div class="pivot-container">
+            <table class="pivot-table">
+                ${createPivotHTML(monthTransactions, 'User', 'Category')}
+            </table>
+        </div>
+    `;
 }
 
-function generatePeriodStats() {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
+function generatePeriodStatsByDate(targetDate) {
+    const y = targetDate.getFullYear();
+    const m = targetDate.getMonth();
 
-    // Calculate start date (23rd of previous month)
-    let startYear = currentYear;
-    let startMonth = currentMonth - 1;
-    if (startMonth < 0) {
-        startMonth = 11;
-        startYear--;
-    }
+    let startYear = y;
+    let startMonth = m - 1;
+    if (startMonth < 0) { startMonth = 11; startYear--; }
     const startDate = new Date(startYear, startMonth, 23);
-    const periodStr = `${startDate.toLocaleDateString()} ~ ${today.toLocaleDateString()}`;
+    const endDate = new Date(y, m, 22);
 
-    // Filter and group
-    const filtered = state.transactions.filter(t => {
-        const d = parseDate(t.Date);
-        return d >= startDate && d <= today;
-    });
+    const periodStr = `${startDate.toLocaleDateString()} ~ ${endDate.toLocaleDateString()}`;
 
-    const groups = {};
-    filtered.forEach(t => {
-        const key = `${t.User}|${t.Category || '미분류'}`;
-        if (!groups[key]) groups[key] = { user: t.User, category: t.Category || '미분류', amount: 0, items: [] };
-        groups[key].amount += (Number(t.Amount) || 0);
-        groups[key].items.push(t);
-    });
-
-    return {
-        periodStr: periodStr,
-        stats: Object.values(groups).sort((a, b) => b.amount - a.amount)
-    };
+    return { periodStr: periodStr };
 }
 
 function generateMonthlyStats() {
@@ -636,7 +668,11 @@ function generateMonthlyStats() {
 }
 
 function showStatsDetail(items) {
-    elements.statsDetailBody.innerHTML = items.sort((a, b) => parseDate(b.Date) - parseDate(a.Date)).map(t => `
+    elements.statsDetailBody.innerHTML = items.sort((a, b) => {
+        const dateDiff = parseDate(b.Date) - parseDate(a.Date);
+        if (dateDiff !== 0) return dateDiff;
+        return new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0);
+    }).map(t => `
         <tr>
             <td>${parseDate(t.Date).toLocaleDateString('ko-KR')}</td>
             <td class="font-bold">${t.Place}</td>

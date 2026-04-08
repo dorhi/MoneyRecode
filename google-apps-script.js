@@ -23,8 +23,13 @@ function doGet(e) {
   // Filter out truly empty rows (where date or place or amount are missing)
   const validRows = transData.slice(1).filter(row => row[0] !== "" && row[0] !== null);
   
-  // Sort by date (descending) so the newest is always on top, regardless of append order
-  validRows.sort((a, b) => new Date(b[0]) - new Date(a[0]));
+  // Sort by date (descending), then by CreatedAt (descending)
+  validRows.sort((a, b) => {
+    const d1 = new Date(b[0]) - new Date(a[0]);
+    if (d1 !== 0) return d1;
+    // Secondary sort: CreatedAt (Registration date - col 7)
+    return new Date(b[7] || 0) - new Date(a[7] || 0);
+  });
   
   const rows = validRows.slice(0, 100); // Get top 100 recent rows
   
