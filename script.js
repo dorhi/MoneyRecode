@@ -4,7 +4,7 @@
 
 // --- CONFIGURATION ---
 // IMPORTANT: Paste your Google Apps Script Web App URL here!
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzg5lNZ19nObtGi9AFdS_idFqmDELR-tt26GaW9ubfRVkJPE0JkRfzbh1m9rDYPtmyE/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyiPLL6kds15bgjzzmXFM0eEpyKDX_9YINAzAgWu2Z8J7-8UHfHocrzOV2f6myvxtnC/exec";
 
 // IMPORTANT: Paste your Google Client ID here!
 const GOOGLE_CLIENT_ID = "755923168348-3b5v8j08o0c4506dcd87i7n56hnni2n0.apps.googleusercontent.com";
@@ -415,7 +415,7 @@ function calculateSummary() {
     const monthlyExpense = state.transactions.reduce((sum, row) => {
         const d = parseDate(row.Date);
         if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-            const amtStr = String(row.Amount || 0).replace(/,/g, '');
+            const amtStr = String(row.Amount || 0).replace(/[^0-9.-]/g, '');
             return sum + (Number(amtStr) || 0);
         }
         return sum;
@@ -540,8 +540,8 @@ function getPeriodTransactionsByDate(targetDate) {
     if (startMonth < 0) { startMonth = 11; startYear--; }
     const startDate = new Date(startYear, startMonth, 23);
 
-    // End: 22nd of selected month
-    const endDate = new Date(y, m, 22);
+    // End: 22nd of selected month (Inclusive of the whole day)
+    const endDate = new Date(y, m, 22, 23, 59, 59, 999);
 
     return state.transactions.filter(t => {
         const d = parseDate(t.Date);
@@ -567,7 +567,8 @@ function createPivotHTML(transactions, rowField, colField) {
         const r = t[rowField] || '미분류';
         const c = t[colField] || '미분류';
         if (matrix[r] && matrix[r][c]) {
-            const amt = (Number(String(t.Amount).replace(/,/g, '')) || 0);
+            const amtStr = String(t.Amount || 0).replace(/[^0-9.-]/g, '');
+            const amt = (Number(amtStr) || 0);
             matrix[r][c].amount += amt;
             matrix[r][c].items.push(t);
             matrix[r]._total += amt;
@@ -637,7 +638,7 @@ function generatePeriodStatsByDate(targetDate) {
     let startMonth = m - 1;
     if (startMonth < 0) { startMonth = 11; startYear--; }
     const startDate = new Date(startYear, startMonth, 23);
-    const endDate = new Date(y, m, 22);
+    const endDate = new Date(y, m, 22, 23, 59, 59, 999);
 
     const periodStr = `${startDate.toLocaleDateString()} ~ ${endDate.toLocaleDateString()}`;
 

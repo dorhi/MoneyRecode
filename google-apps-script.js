@@ -31,9 +31,7 @@ function doGet(e) {
     return new Date(b[7] || 0) - new Date(a[7] || 0);
   });
   
-  const rows = validRows.slice(0, 100); // Get top 100 recent rows
-  
-  const transactions = rows.map(row => {
+  const transactions = validRows.map(row => {
     let obj = {};
     // Ensure Date is formatted as YYYY-MM-DD string for JS
     let dateVal = row[0];
