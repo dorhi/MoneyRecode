@@ -476,6 +476,11 @@ button {
     font-weight: 600;
 }
 
+.text-income {
+    color: var(--income);
+    font-weight: 600;
+}
+
 .font-bold {
     font-weight: 600;
 }

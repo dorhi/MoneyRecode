@@ -176,8 +176,23 @@ function setupEventListeners() {
 
     // Amount Formatting
     elements.amountInput.addEventListener('input', (e) => {
-        let value = e.target.value.replace(/[^0-9]/g, '');
-        e.target.value = value ? Number(value).toLocaleString() : '';
+        let value = e.target.value.replace(/[^0-9-]/g, '');
+        // Ensure '-' only at the beginning
+        if (value.startsWith('-')) {
+            value = '-' + value.substring(1).replace(/-/g, '');
+        } else {
+            value = value.replace(/-/g, '');
+        }
+
+        if (value === '-') {
+            e.target.value = '-';
+        } else if (value) {
+            const isNegative = value.startsWith('-');
+            const numPart = isNegative ? value.substring(1) : value;
+            e.target.value = (isNegative ? '-' : '') + Number(numPart).toLocaleString();
+        } else {
+            e.target.value = '';
+        }
     });
 
     // Form submission
@@ -368,7 +383,9 @@ function renderTransactions() {
 
     const html = sortedTransactions.map(row => {
         const amtStr = String(row.Amount || 0).replace(/,/g, '');
-        const amount = Number(amtStr).toLocaleString();
+        const rawAmount = Number(amtStr) || 0;
+        const amount = Math.abs(rawAmount).toLocaleString();
+        const colorClass = rawAmount < 0 ? 'text-income' : 'text-expense';
         const date = parseDate(row.Date).toLocaleDateString('ko-KR');
 
         return `
@@ -376,7 +393,7 @@ function renderTransactions() {
                 <td>${date}</td>
                 <td><span class="badge category">${row.Category || '미분류'}</span></td>
                 <td class="font-bold">${row.Place || '-'}</td>
-                <td class="text-expense">₩ ${amount}</td>
+                <td class="${colorClass}">₩ ${rawAmount < 0 ? '-' : ''}${amount}</td>
                 <td><span class="badge user">${row.User || '-'}</span></td>
                 <td class="text-secondary">${row.Details || '-'}</td>
                 <td><i class="fas fa-credit-card mini-icon"></i> ${row.Card || '-'}</td>
@@ -584,8 +601,9 @@ function createPivotHTML(transactions, rowField, colField) {
         html += `<tr><td class="row-label">${r}</td>`;
         colItems.forEach(c => {
             const cell = matrix[r][c];
-            if (cell.amount > 0) {
-                html += `<td><span class="stat-amount" data-items='${JSON.stringify(cell.items)}'>${cell.amount.toLocaleString()}</span></td>`;
+            if (cell.amount !== 0) {
+                const colorClass = cell.amount < 0 ? 'text-income' : 'text-expense';
+                html += `<td><span class="stat-amount ${colorClass}" data-items='${JSON.stringify(cell.items)}'>${cell.amount.toLocaleString()}</span></td>`;
             } else {
                 html += `<td class="empty-val">-</td>`;
             }
@@ -673,15 +691,21 @@ function showStatsDetail(items) {
         const dateDiff = parseDate(b.Date) - parseDate(a.Date);
         if (dateDiff !== 0) return dateDiff;
         return new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0);
-    }).map(t => `
-        <tr>
-            <td>${parseDate(t.Date).toLocaleDateString('ko-KR')}</td>
-            <td class="font-bold">${t.Place}</td>
-            <td class="text-expense">₩ ${Number(String(t.Amount).replace(/,/g, '')).toLocaleString()}</td>
-            <td class="text-secondary">${t.Details || '-'}</td>
-            <td><span class="badge author">${t.Card || '-'}</span></td>
-        </tr>
-    `).join('');
+    }).map(t => {
+        const rawAmount = Number(String(t.Amount).replace(/,/g, '')) || 0;
+        const amount = Math.abs(rawAmount).toLocaleString();
+        const colorClass = rawAmount < 0 ? 'text-income' : 'text-expense';
+
+        return `
+            <tr>
+                <td>${parseDate(t.Date).toLocaleDateString('ko-KR')}</td>
+                <td class="font-bold">${t.Place}</td>
+                <td class="${colorClass}">₩ ${rawAmount < 0 ? '-' : ''}${amount}</td>
+                <td class="text-secondary">${t.Details || '-'}</td>
+                <td><span class="badge author">${t.Card || '-'}</span></td>
+            </tr>
+        `;
+    }).join('');
 
     elements.statsDetailModal.style.display = 'flex';
     setTimeout(() => elements.statsDetailModal.classList.add('show'), 10);
