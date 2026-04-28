@@ -440,6 +440,15 @@ function calculateSummary() {
 
     state.totalExpense = monthlyExpense;
     elements.totalExpenseDisplay.textContent = `₩ ${monthlyExpense.toLocaleString()}`;
+    
+    // Apply color based on sign
+    if (monthlyExpense < 0) {
+        elements.totalExpenseDisplay.classList.add('text-income');
+        elements.totalExpenseDisplay.classList.remove('text-expense');
+    } else {
+        elements.totalExpenseDisplay.classList.add('text-expense');
+        elements.totalExpenseDisplay.classList.remove('text-income');
+    }
 
     // Add subtle glow animation if expense changed
     elements.totalExpenseDisplay.classList.add('pulse');

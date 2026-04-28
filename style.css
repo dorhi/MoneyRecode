@@ -472,12 +472,12 @@ button {
 }
 
 .text-expense {
-    color: var(--expense);
+    color: var(--expense) !important;
     font-weight: 600;
 }
 
 .text-income {
-    color: var(--income);
+    color: var(--income) !important;
     font-weight: 600;
 }
 
